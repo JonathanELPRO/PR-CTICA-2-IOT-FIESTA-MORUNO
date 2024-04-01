@@ -1,7 +1,6 @@
 #include "ServerAdministrator.h"
 
-int main() 
-{
+int main() {
     ServerAdministrator* serverAdministrator = new ServerAdministrator();
     serverAdministrator->startServer();
     return 0;

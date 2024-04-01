@@ -1,13 +1,18 @@
 #include "SensorClient.h"
 
 SensorClient::SensorClient() {
+    temperatureHumiditySensor = new TemperatureHumiditySensor(DHTPIN, DHT22);
+    temperatureHumiditySensor->configureInitialization();
 }
 
 SensorClient::~SensorClient() {
 }
 
-bool SensorClient::connectWithServer(const char* serverAddress, const int serverPort) {
-    return client.connect(serverAddress, serverPort);
+void SensorClient::connectWithServer(const char* serverAddress, const int serverPort) {
+    if (!client.connect(serverAddress, serverPort)) {
+        Serial.println("Connection failed");
+        return;
+    }
 }
 
 const char* SensorClient::getPointerToConstantCharacterArray(String& string) {
@@ -29,4 +34,8 @@ unsigned long SensorClient::getTimeElapsedSinceESPStarted() {
 void SensorClient::waitMilliseconds(int milliseconds) {
     unsigned long previousTimeElapsedSinceESPStarted = getTimeElapsedSinceESPStarted();
     while (getTimeElapsedSinceESPStarted() - previousTimeElapsedSinceESPStarted < milliseconds);
+}
+
+float SensorClient::getTemperatureFromEnvironmentInCelsius() {
+    return temperatureHumiditySensor->getTemperatureFromEnvironmentInCelsius();
 }

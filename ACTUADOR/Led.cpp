@@ -1,7 +1,8 @@
 #include "Led.h"
 
-Led::Led(byte ledPin) {
+Led::Led(byte ledPin, String color) {
     this->ledPin = ledPin;
+    this->color = color;
     pinMode(ledPin, OUTPUT);
 }
 
@@ -24,6 +25,24 @@ void Led::blinkWithFrequency(float seconds) {
     delay(milliseconds);
 }
 
-void Led::turnOnCertainLedBasedOnGetRequest(String getFromServer) {
+int Led::getSubstringPositionInString(String string, String subString) {
+    return string.indexOf(subString);
+}
+
+char Led::getCharacterOfAPositionOfAString(String string, int position_) {
+    return string.charAt(position_);
+}
+
+bool Led::castCharToBool(char character) {
+    return character != '0';
+}
+
+void Led::setStateInBaseGetRequests(String getRequestFromServer) {
     
+    char characterValue = getCharacterOfAPositionOfAString(getRequestFromServer, getSubstringPositionInString(getRequestFromServer, color) + 2);
+    this->state = castCharToBool(characterValue);
+}
+
+bool Led::getState() {
+    return state;
 }

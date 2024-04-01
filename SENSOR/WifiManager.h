@@ -9,6 +9,8 @@ public:
     WifiManager(const char* ssid, const char* password);
     ~WifiManager();
     int getWifiConnectionStatus();
-    IPAddress getIpAddressOfTheDevice();
+    void getIpAddressOfTheDevice();
+    void connectToNetwork();
+    void checkConnectionStatus(); 
     void connectToWifi();
 };

@@ -6,20 +6,18 @@ ClientAdministrator::ClientAdministrator(int clientSocket) {
     this->clientSocket = clientSocket;
 }
 
-ClientAdministrator::~ClientAdministrator() {
-}
+ClientAdministrator::~ClientAdministrator() {}
 
-void ClientAdministrator::updateLedsStatusFromTemperature(bool* redLed, bool* yellowLed, bool* whiteLed, bool* blueLed, double* temperature) {
-    *redLed = *yellowLed = *whiteLed = *blueLed = false;
-
-    if (*temperature >= -10.0 && *temperature < 0.0) {
-        *blueLed = true;
-    } else if (*temperature >= 0.0 && *temperature < 15.0) {
-        *whiteLed = true;
-    } else if (*temperature >= 15.0 && *temperature < 25.0) {
-        *yellowLed = true;
-    } else if (*temperature >= 25.0 && *temperature < 50) {
-        *redLed = true;
+void ClientAdministrator::updateLedsStatusFromTemperature(LedController* ledController, Temperature* temperature) {
+    ledController->setAllLedStatesToFalse();
+    if (temperature->getValue() >= -10.0 && temperature->getValue() < 0.0) {
+        ledController->setLedState(LedColor::BLUE, true);
+    } else if (temperature->getValue() >= 0.0 && temperature->getValue() < 15.0) {
+        ledController->setLedState(LedColor::WHITE, true);
+    } else if (temperature->getValue() >= 15.0 && temperature->getValue() < 25.0) {
+        ledController->setLedState(LedColor::YELLOW, true);
+    } else if (temperature->getValue() >= 25.0 && temperature->getValue() < 50) {
+        ledController->setLedState(LedColor::RED, true);
     }
 }
 
@@ -62,10 +60,10 @@ void ClientAdministrator::extractTemperatureFromBufferInVariable(char* buffer, d
     std::sscanf(buffer, "SET %lf", temperature);
 }
 
-char* ClientAdministrator::getTheGetRequestMessage(bool* redLed, bool* yellowLed, bool* whiteLed, bool* blueLed) {
+char* ClientAdministrator::getTheGetRequestMessage(LedController* ledController) {
     char* messageGet = new char[20];
     std::memset(messageGet, 0, 20);
-    std::sprintf(messageGet, "R=%d, Y=%d, W=%d, B=%d", *redLed, *yellowLed, *whiteLed, *blueLed);
+    std::sprintf(messageGet, "R=%d, Y=%d, W=%d, B=%d", ledController->getLedState(LedColor::RED), ledController->getLedState(LedColor::YELLOW), ledController->getLedState(LedColor::WHITE), ledController->getLedState(LedColor::BLUE));
     return messageGet;
 }
 
@@ -77,14 +75,18 @@ void ClientAdministrator::sendGetMessageToClient(char* messageGet) {
     send(clientSocket, messageGet, getTheSizeOfString(messageGet), 0);
 }
 
-void ClientAdministrator::performTheSetProtocol(char* buffer, double* temperature, bool* redLed, bool* yellowLed, bool* whiteLed, bool* blueLed) {
-    extractTemperatureFromBufferInVariable(buffer, temperature);
-    std::cout << "Temperature stored: " << *temperature << std::endl;
-    updateLedsStatusFromTemperature(redLed, yellowLed, whiteLed, blueLed, temperature);
+double* ClientAdministrator::getPointerFromDouble(double &Double) {
+    return &Double;
+} 
+
+void ClientAdministrator::performTheSetProtocol(LedController* ledController, MessageHandler* messageHandler, Temperature* temperature) {
+    extractTemperatureFromBufferInVariable(messageHandler->getBuffer(), temperature->getPointerValue());
+    std::cout << "Temperature stored: " << temperature->getValue() << std::endl;
+    updateLedsStatusFromTemperature(ledController, temperature);
 }
 
-void ClientAdministrator::performTheGetProtocol(bool* redLed, bool* yellowLed, bool* whiteLed, bool* blueLed) {
-    char* messageGet = getTheGetRequestMessage(redLed, yellowLed, whiteLed, blueLed);
+void ClientAdministrator::performTheGetProtocol(LedController* ledController) {
+    char* messageGet = getTheGetRequestMessage(ledController);
     sendGetMessageToClient(messageGet);
     std::cout << "Echoed back: " << messageGet << std::endl;
     delete[] messageGet;
@@ -98,21 +100,28 @@ void ClientAdministrator::endConnectionWithClient() {
     close(clientSocket);
 }
 
-void ClientAdministrator::putSetOrSendGet(char* buffer, char* nameMethod, double* temperature, bool* redLed, bool* yellowLed, bool* whiteLed, bool* blueLed) {
+void ClientAdministrator::identifyAndProcessMethod(LedController* ledController, MessageHandler* messageHandler, Temperature* temperature) {
+    identifyTheTypeOfMethod(messageHandler->getBuffer(), messageHandler->getNameMethod());
+    std::cout << "Method: " << messageHandler->getNameMethod() << std::endl;
+
+    if (stringsEquals(messageHandler->getNameMethod(), SET)) {
+        performTheSetProtocol(ledController, messageHandler, temperature);
+    } else if (!stringsEquals(messageHandler->getNameMethod(), SET)) {
+        performTheGetProtocol(ledController);
+    }
+}
+
+void ClientAdministrator::processReceivedMessage(LedController* ledController, MessageHandler* messageHandler, Temperature* temperature) {
+    std::cout << "Received: " << messageHandler->getBuffer() << std::endl;
+    identifyAndProcessMethod(ledController, messageHandler, temperature);
+}
+
+void ClientAdministrator::putSetOrSendGet(LedController* ledController, MessageHandler* messageHandler, Temperature* temperature) {
     int numberOfBytesOfMessageReceivedByTheClient;
 
-    while ((numberOfBytesOfMessageReceivedByTheClient = getNumberOfBytesOfMessageReceivedByTheClient(buffer)) > 0) {
-        std::cout << "Received: " << buffer << std::endl;
-        identifyTheTypeOfMethod(buffer, nameMethod);
-        std::cout << "Method: " << nameMethod << std::endl;
-
-        if (stringsEquals(nameMethod, SET)) {
-            performTheSetProtocol(buffer, temperature, redLed, yellowLed, whiteLed, blueLed);
-        } else {
-            performTheGetProtocol(redLed, yellowLed, whiteLed, blueLed);
-        }
-
-        clearString(buffer, BUFFER_SIZE);
+    while ((numberOfBytesOfMessageReceivedByTheClient = getNumberOfBytesOfMessageReceivedByTheClient(messageHandler->getBuffer())) > 0) {
+        processReceivedMessage(ledController, messageHandler, temperature);
+        clearString(messageHandler->getBuffer(), BUFFER_SIZE);
     }
     if (numberOfBytesOfMessageReceivedByTheClient < 0) {
         perror("read");

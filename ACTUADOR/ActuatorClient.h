@@ -8,21 +8,19 @@ private:
     Led* yellowLed;
     Led* whiteLed;
     Led* blueLed;
-
 public:
     ActuatorClient();
     ~ActuatorClient();
-    bool connectWithServer(const char* serverAddress, const int serverPort);
+    void connectWithServer(const char* serverAddress, const int serverPort);
     const char* getPointerToConstantCharacterArray(String& string);
-    void sendGetToServer(String get_);
+    void sendGetToServer();
     void terminateTheConnection();
     unsigned long getTimeElapsedSinceESPStarted();
     void waitMilliseconds(int milliseconds);
     int thereIsDataToBeReadFromTheServer();
     void waitForResponseFromTheServer(int milliseconds);
     String getGetRequestFromServer();
-    int getSubstringPositionInString(String string, String subString);
-    char getCharacterOfAPositionOfAString(String string, int position_);
-    int castCharToInt(char char_);
+    void getLedsStatusBasedOnTheGetRequest(String getRequestFromServer);
     void turnLedsOnAndOffBasedOnGetRequest(String getRequestFromServer);
+    void doSomethingBasedOnGetRequest();
 };

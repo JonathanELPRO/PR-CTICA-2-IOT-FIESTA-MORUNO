@@ -1,25 +1,29 @@
 #include "ActuatorClient.h"
 
 ActuatorClient::ActuatorClient() {
-    redLed = new Led(13);
-    yellowLed = new Led(27);
-    whiteLed = new Led(26);
-    blueLed = new Led(25);
+    redLed = new Led(13, "R");
+    yellowLed = new Led(27 ,"Y");
+    whiteLed = new Led(26, "W");
+    blueLed = new Led(25, "B");
 }
 
 ActuatorClient::~ActuatorClient() {
 }
 
-bool ActuatorClient::connectWithServer(const char* serverAddress, const int serverPort) {
-    return client.connect(serverAddress, serverPort);
+void ActuatorClient::connectWithServer(const char* serverAddress, const int serverPort) {
+    if (!client.connect(serverAddress, serverPort)) {
+        Serial.println("Connection failed");
+        return;
+    }
 }
 
 const char* ActuatorClient::getPointerToConstantCharacterArray(String& string) {
     return string.c_str();
 }
 
-void ActuatorClient::sendGetToServer(String get_) {
-    client.print(getPointerToConstantCharacterArray(get_));
+void ActuatorClient::sendGetToServer() {
+    String get = "GET\n";
+    client.print(getPointerToConstantCharacterArray(get));
 }
 
 void ActuatorClient::terminateTheConnection() {
@@ -48,52 +52,36 @@ String ActuatorClient::getGetRequestFromServer() {
     return client.readStringUntil('\n');
 }
 
-int ActuatorClient::getSubstringPositionInString(String string, String subString) {
-    return string.indexOf(subString);
-}
-
-char ActuatorClient::getCharacterOfAPositionOfAString(String string, int position_) {
-    return string.charAt(position_);
-}
-
-int ActuatorClient::castCharToInt(char char_) {
-    return char_ - '0';
+void ActuatorClient::getLedsStatusBasedOnTheGetRequest(String getRequestFromServer) {    
+    redLed->setStateInBaseGetRequests(getRequestFromServer);
+    yellowLed->setStateInBaseGetRequests(getRequestFromServer);
+    whiteLed->setStateInBaseGetRequests(getRequestFromServer);
+    blueLed->setStateInBaseGetRequests(getRequestFromServer);
 }
 
 void ActuatorClient::turnLedsOnAndOffBasedOnGetRequest(String getRequestFromServer) {
-    int redIndex = getSubstringPositionInString(getRequestFromServer, "R=") + 2;
-    int yellowIndex = getSubstringPositionInString(getRequestFromServer, "Y=") + 2;
-    int whiteIndex = getSubstringPositionInString(getRequestFromServer, "W=") + 2;
-    int blueIndex = getSubstringPositionInString(getRequestFromServer, "B=") + 2;
-    
-    char redCharacterValue = getCharacterOfAPositionOfAString(getRequestFromServer, redIndex);
-    char yellowCharacterValue = getCharacterOfAPositionOfAString(getRequestFromServer, yellowIndex);
-    char whiteCharacterValue = getCharacterOfAPositionOfAString(getRequestFromServer, whiteIndex);
-    char blueCharacterValue = getCharacterOfAPositionOfAString(getRequestFromServer, blueIndex);
-
-    int redIntValue = castCharToInt(redCharacterValue);
-    int yellowIntValue = castCharToInt(yellowCharacterValue);
-    int whiteIntValue = castCharToInt(whiteCharacterValue);
-    int blueIntValue = castCharToInt(blueCharacterValue);
-    
+    getLedsStatusBasedOnTheGetRequest(getRequestFromServer);
     redLed->turnOff();
     yellowLed->turnOff();
     whiteLed->turnOff();
     blueLed->turnOff();
-    
-    if (blueIntValue == 1) {
+    if (blueLed->getState()) {
         blueLed->turnOn();
     }
-
-    if (whiteIntValue == 1) {
+    else if (whiteLed->getState()) {
         whiteLed->turnOn();
     }
-
-    if (yellowIntValue == 1) {
+    else if (yellowLed->getState()) {
         yellowLed->turnOn();
     }
-
-    if (redIntValue == 1) {
+    else if (redLed->getState()) {
         redLed->turnOn();
+    }
+}
+
+void ActuatorClient::doSomethingBasedOnGetRequest() {
+    if (thereIsDataToBeReadFromTheServer() > 0) {
+        String getRequestFromServer = getGetRequestFromServer();
+        turnLedsOnAndOffBasedOnGetRequest(getRequestFromServer);
     }
 }
