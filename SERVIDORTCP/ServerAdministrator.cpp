@@ -94,7 +94,8 @@ void ServerAdministrator::configureTheServer() {
 
 void ServerAdministrator::listenToAndServeClients(LedController* ledController, MessageHandler* messageHandler, Temperature* temperature) {
     int socketForNewClient;
-    while (true) {
+    bool running = true
+    while (running) {
         createSocketForNewClient(socketForNewClient);
         ClientAdministrator* clientAdministrator = new ClientAdministrator(socketForNewClient);
         spawnClientHandlerThread(clientAdministrator, ledController, messageHandler, temperature);
