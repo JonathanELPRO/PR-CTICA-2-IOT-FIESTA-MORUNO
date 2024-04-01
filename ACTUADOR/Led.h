@@ -15,6 +15,7 @@ public:
     int getSubstringPositionInString(String string, String subString);
     char getCharacterOfAPositionOfAString(String string, int position_);
     bool castCharToBool(char character);
+    void setState(bool state);
     void setStateInBaseGetRequests(String getRequestFromServer);
     bool getState();
 };

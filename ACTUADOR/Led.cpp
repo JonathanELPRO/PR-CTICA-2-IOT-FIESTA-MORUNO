@@ -37,10 +37,13 @@ bool Led::castCharToBool(char character) {
     return character != '0';
 }
 
+void Led::setState(bool state) {
+    this->state = state;
+}
+
 void Led::setStateInBaseGetRequests(String getRequestFromServer) {
-    
     char characterValue = getCharacterOfAPositionOfAString(getRequestFromServer, getSubstringPositionInString(getRequestFromServer, color) + 2);
-    this->state = castCharToBool(characterValue);
+    setState(castCharToBool(characterValue));
 }
 
 bool Led::getState() {
